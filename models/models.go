@@ -10,6 +10,7 @@ type Connection struct {
 	Provider string
 	DBName   string
 	URL      string
+	WebProxy string
 }
 
 type StateChange struct {

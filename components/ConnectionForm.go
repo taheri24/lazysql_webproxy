@@ -24,6 +24,7 @@ func NewConnectionForm(connectionPages *models.ConnectionPages) *ConnectionForm 
 	addForm := tview.NewForm().SetFieldBackgroundColor(tcell.ColorWhite).SetButtonBackgroundColor(tcell.ColorWhite).SetLabelColor(tcell.ColorWhite.TrueColor()).SetFieldTextColor(tcell.ColorBlack)
 	addForm.AddInputField("Name", "", 0, nil, nil)
 	addForm.AddInputField("URL", "", 0, nil, nil)
+	addForm.AddInputField("WebProxy", "", 0, nil, nil)
 
 	buttonsWrapper := tview.NewFlex().SetDirection(tview.FlexColumn)
 
@@ -76,7 +77,7 @@ func (form *ConnectionForm) inputCapture(connectionPages *models.ConnectionPages
 				return event
 			}
 
-			connectionString := form.GetFormItem(1).(*tview.InputField).GetText()
+			connectionString, webproxy := (form.GetFormItem(1).(*tview.InputField).GetText()), (form.GetFormItem(2).(*tview.InputField).GetText())
 
 			parsed, err := helpers.ParseConnectionString(connectionString)
 
@@ -93,6 +94,7 @@ func (form *ConnectionForm) inputCapture(connectionPages *models.ConnectionPages
 					Provider: parsed.Driver,
 					DBName:   helpers.ParsedDBName(parsed.Path),
 					URL:      connectionString,
+					WebProxy: webproxy,
 				}
 
 				switch form.Action {
@@ -106,26 +108,9 @@ func (form *ConnectionForm) inputCapture(connectionPages *models.ConnectionPages
 					}
 
 				case "edit":
-					newDatabases = make([]models.Connection, len(databases))
 					row, _ := ConnectionListTable.GetSelection()
-
-					for i, database := range databases {
-						if i == row {
-							newDatabases[i] = parsedDatabaseData
-
-							// newDatabases[i].Name = connectionName
-							// newDatabases[i].Provider = database.Provider
-							// newDatabases[i].User = parsed.User.Username()
-							// newDatabases[i].Password, _ = parsed.User.Password()
-							// newDatabases[i].Host = parsed.Hostname()
-							// newDatabases[i].Port = parsed.Port()
-							// newDatabases[i].Query = parsed.Query().Encode()
-							// newDatabases[i].DBName = helpers.ParsedDBName(parsed.Path)
-							// newDatabases[i].DSN = parsed.DSN
-						} else {
-							newDatabases[i] = database
-						}
-					}
+					newDatabases = databases[0:]
+					newDatabases[row] = parsedDatabaseData
 
 					err := helpers.SaveConnectionConfig(newDatabases)
 					if err != nil {
@@ -139,14 +124,14 @@ func (form *ConnectionForm) inputCapture(connectionPages *models.ConnectionPages
 				connectionPages.SwitchToPage("Connections")
 			}
 		} else if event.Key() == tcell.KeyF2 {
-			connectionString := form.GetFormItem(1).(*tview.InputField).GetText()
-			go form.testConnection(connectionString)
+			connectionString, webproxy := (form.GetFormItem(1).(*tview.InputField).GetText()), (form.GetFormItem(2).(*tview.InputField).GetText())
+			go form.testConnection(connectionString, webproxy)
 		}
 		return event
 	}
 }
 
-func (form *ConnectionForm) testConnection(connectionString string) {
+func (form *ConnectionForm) testConnection(connectionString, webproxy string) {
 	parsed, err := helpers.ParseConnectionString(connectionString)
 	if err != nil {
 		form.StatusText.SetText(err.Error()).SetTextStyle(tcell.StyleDefault.Foreground(tcell.ColorRed))

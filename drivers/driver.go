@@ -22,3 +22,19 @@ type Driver interface {
 	SetProvider(provider string)
 	GetProvider() string
 }
+
+func New(dbDriver, webProxyEndpoint, connectionString string) Driver {
+	switch {
+	case webProxyEndpoint != "":
+		return &WebProxyClient{endpoint: webProxyEndpoint, connectionString: connectionString}
+	case dbDriver == "mysql":
+		return &MySQL{}
+	case dbDriver == "postgres":
+		return &Postgres{}
+	case dbDriver == "sqlite3":
+		return &SQLite{}
+	default:
+		panic("New Driver failed")
+	}
+
+}
